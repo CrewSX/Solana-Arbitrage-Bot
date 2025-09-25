@@ -1,0 +1,85 @@
+# Example Configuration for Solana PumpFun Trading Bot
+# Copy this file to config.toml and modify as needed
+
+# Solana RPC Configuration
+# Use a reliable RPC endpoint for better performance
+rpc_url = "https://api.mainnet-beta.solana.com"
+# Alternative RPC endpoints:
+# rpc_url = "https://solana-api.projectserum.com"
+# rpc_url = "https://rpc.ankr.com/solana"
+
+# Wallet Configuration
+# Path to your Solana wallet keypair file
+wallet_path = "wallet.json"
+# Generate a new wallet with: solana-keygen new --outfile wallet.json
+
+# Trading Configuration
+[trading]
+# Maximum slippage tolerance (percentage)
+max_slippage = 5.0
+
+# Minimum liquidity required (in lamports, 1 SOL = 1,000,000,000 lamports)
+min_liquidity = 100_000_000  # 100 SOL
+
+# Maximum amount to spend on a single buy (in lamports)
+max_buy_amount = 1_000_000_000  # 1 SOL
+
+# Maximum amount to sell in a single transaction (in lamports)
+max_sell_amount = 1_000_000_000  # 1 SOL
+
+# Take profit percentage
+profit_target_percent = 20.0
+
+# Stop loss percentage
+stop_loss_percent = 10.0
+
+# Cooldown between trades on the same token (seconds)
+cooldown_seconds = 60
+
+# Maximum number of concurrent positions
+max_positions = 5
+
+# PumpPortal API Configuration
+[pumpportal]
+# PumpPortal API endpoint
+api_url = "https://api.pumpportal.fun"
+
+# Optional API key for premium features
+api_key = ""
+
+# How often to check for new tokens (milliseconds)
+refresh_interval_ms = 5000
+
+# Minimum market cap filter (in USD)
+min_market_cap = 1_000_000  # $1M
+
+# Maximum market cap filter (in USD)
+max_market_cap = 10_000_000  # $10M
+
+# Minimum number of holders required
+min_holders = 100
+
+# Maximum token age (hours)
+max_age_hours = 24
+
+# Monitoring Configuration
+[monitoring]
+# Log level: trace, debug, info, warn, error
+log_level = "info"
+
+# Save trade history to file
+save_trades = true
+
+# Optional webhook URL for alerts (Discord, Slack, etc.)
+webhook_url = ""
+
+# Alert thresholds
+[monitoring.alert_thresholds]
+# Alert if maximum drawdown exceeds this percentage
+max_drawdown_percent = 20.0
+
+# Alert if daily profit is below this percentage
+min_daily_profit_percent = 5.0
+
+# Alert if daily loss exceeds this percentage
+max_daily_loss_percent = 15.0

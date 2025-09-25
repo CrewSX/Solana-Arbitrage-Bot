@@ -1,0 +1,29 @@
+# Rust
+target/
+Cargo.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Bot specific
+wallet.json
+config.toml
+*.log
+metrics.json
+config_backup.toml
+
+# Secrets
+.env
+*.key
+*.pem
+
+# Build artifacts
+dist/
+build/

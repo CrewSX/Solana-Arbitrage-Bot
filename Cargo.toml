@@ -1,0 +1,55 @@
+[package]
+name = "solana-pumpfun-bot"
+version = "0.1.0"
+edition = "2021"
+authors = ["Your Name <your.email@example.com>"]
+description = "A Solana PumpFun trading bot with PumpPortal integration"
+license = "MIT"
+
+[dependencies]
+# Solana dependencies
+solana-client = "1.18"
+solana-sdk = "1.18"
+spl-token = "4.0"
+anchor-client = "0.30"
+anchor-lang = "0.30"
+
+# HTTP and async
+reqwest = { version = "0.11", features = ["json"] }
+tokio = { version = "1.0", features = ["full"] }
+futures = "0.3"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Logging
+log = "0.4"
+env_logger = "0.10"
+
+# Time and utilities
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.0", features = ["v4"] }
+
+# Configuration
+config = "0.14"
+toml = "0.8"
+clap = { version = "4.0", features = ["derive"] }
+
+# Math and calculations
+rust_decimal = "1.32"
+rust_decimal_macros = "1.32"
+
+# WebSocket support for real-time data
+tokio-tungstenite = "0.20"
+tungstenite = "0.20"
+
+# Base58 encoding
+bs58 = "0.5"
+
+# Keypair management
+solana-keygen = "1.18"
