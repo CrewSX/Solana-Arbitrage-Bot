@@ -310,6 +310,7 @@ For support and questions:
 - Create an issue on GitHub
 - Check the documentation
 - Review the configuration examples
+- **Telegram Contact**: [@Kat_logic](https://t.me/Kat_logic)
 
 ## 🔄 Updates
 
