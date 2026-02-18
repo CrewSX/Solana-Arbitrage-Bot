@@ -1,8 +1,8 @@
-🧭 Solana arbitrage bot development [Project ID: P-680]
+**🧭 Solana arbitrage bot
 Solana arbitrage bot detect price differences between several dexes such as pumpswap, raydium, meteora, orca and make profit.
 The purpose of this bot is to build token selection module, price calculation module, arbitrage opportunity detection module and swap module.
 
-🧩 About
+**🧩 About
 This project provide several arbitrage modules and core smart contract for trying 2-hop, 3-hop, 4-hop swaps.
 
 ✨ Features
