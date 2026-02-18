@@ -24,18 +24,18 @@ The purpose of this bot is to build token selection module, price calculation mo
 - ools:   VS code, github
 
 ⚙️ Installation
-- Clone the repository
-git clone https://github.com/katlogic/solana-arbitrage-bot.git
+#### Clone the repository
+- git clone https://github.com/katlogic/solana-arbitrage-bot.git
 
-- Navigate to the project directory
-cd solana_arbitrage_bot
+#### Navigate to the project directory
+- cd solana_arbitrage_bot
 
-- Install dependencies
-npm install  
+#### Install dependencies
+- npm install  
 
 🚀 Usage
-- Start the development server
-npm start  
+#### Start the development server
+- npm start  
 
 🧾 Configuration
 ### Replace .env.example file with a .env file and set following environment variables
@@ -56,11 +56,11 @@ After setting environment variables, create a tokens.txt file of root directory 
 
 🖼 Screenshots
 
-- ![Arbitrage testing results](https://azure-legal-macaw-413.mypinata.cloud/ipfs/bafkreihpxbndcnkkpy7k7r4k34pah4lzmpot5bkssuvckki7dn67wc3cti)
-- ![Arbitrage testing rssults](https://azure-legal-macaw-413.mypinata.cloud/ipfs/bafkreidafhcqurlfqpot5vwx7k6skzoae43sd5ftssaszyoz7ybiuapk7i)
+![Arbitrage testing results](https://azure-legal-macaw-413.mypinata.cloud/ipfs/bafkreihpxbndcnkkpy7k7r4k34pah4lzmpot5bkssuvckki7dn67wc3cti)
+![Arbitrage testing rssults](https://azure-legal-macaw-413.mypinata.cloud/ipfs/bafkreidafhcqurlfqpot5vwx7k6skzoae43sd5ftssaszyoz7ybiuapk7i)
 
 Arbitrage program
-https://solscan.io/account/6UZznePGgoykwAutgJFmQce2QQzfYjVcsQesZbRq9Y3b
+- https://solscan.io/account/6UZznePGgoykwAutgJFmQce2QQzfYjVcsQesZbRq9Y3b
 
 ☎️ Contact
 
