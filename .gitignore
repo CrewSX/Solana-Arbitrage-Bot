@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 public-bundles.json
 id-bundles.json
 # Logs
@@ -130,3 +131,34 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+=======
+# Rust
+target/
+Cargo.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Bot specific
+wallet.json
+config.toml
+*.log
+metrics.json
+config_backup.toml
+
+# Secrets
+.env
+*.key
+*.pem
+
+# Build artifacts
+dist/
+build/
+>>>>>>> 4364c8096cb898dcf9f85397076208b5ff3e1046
