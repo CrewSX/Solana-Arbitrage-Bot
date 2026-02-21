@@ -1075,10 +1075,10 @@ async function startStream(){
                                   // findArbtrageOpportunities(pairAddress, "clmm", isBuy, tradeAmount, poolReserves, sig)
                                 }
                                 if(pairAddress.split("_")[1]=="orcawp") {
-                                  if(key=="GpuWWgWuiWkn9fL6EQK55rdwQExkwQJsjuDmhnT3otdK"){
-                                    // console.log("orca", sig)
-                                    logger.info(`orca ,  ${sig}`);
-                                  }
+                                  // if(key=="GpuWWgWuiWkn9fL6EQK55rdwQExkwQJsjuDmhnT3otdK"){
+                                  //   // console.log("orca", sig)
+                                  //   logger.info(`orca ,  ${sig}`);
+                                  // }
                                   for (let i = 0; i < data.transaction.transaction.meta.preTokenBalances.length; i++) {
                                     const balance = data.transaction.transaction.meta.preTokenBalances[i];
                                     if(balance.owner==key){
@@ -1377,6 +1377,10 @@ async function findArbtrageOpportunities(
     }
     
     if(newPrice==0 || fee==undefined || fee==0) return;
+    if(params.poolAddress=="GpuWWgWuiWkn9fL6EQK55rdwQExkwQJsjuDmhnT3otdK"){
+      // console.log("orca", sig)
+      logger.info(`orca ,  ${newPrice}`);
+    }
     prices[params.poolAddress]=newPrice;
     fees[params.poolAddress]=fee;
     // console.log(fees)
@@ -1421,8 +1425,8 @@ async function findArbtrageOpportunities(
     // if(tradeAmount<0.1*LAMPORTS_PER_SOL) return;
     const profit=Number(tradeAmount)*(ratio-totalFee)/100;
     if(profit<0.000007*LAMPORTS_PER_SOL) return;
-    console.log(totalFee, ratio, tradeAmount, profit);
-    tryArbSwap(minPriceAddress, maxPriceAddress, params.sig, tradeAmount)
+    // console.log(totalFee, ratio, tradeAmount, profit);
+    // tryArbSwap(minPriceAddress, maxPriceAddress, params.sig, tradeAmount)
 
   }catch(e){console.log(e)}
 }
