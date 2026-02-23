@@ -6,20 +6,16 @@ import { logger } from './logger';
 
 
 
-export async function sendNewTokenAlert(mintAddress: string) {
+export async function sendTelegramAlert(message: string) {
     const telegramBotToken = String(TELEGRAM_BOT_TOKEN);
     const telegramChatId = String(TELEGRAM_CHAT_ID);
     const bot = new TelegramBot(telegramBotToken, { polling: false });
-    // await bot
-    //     .getChat(channelUserName)
-    //     .then((chat: any) => {
-    //         channelId = chat.id;
-    //     });
-    const message = `
-    😊New Token Detected!😊
-    Mint Address: ${mintAddress} \n
-    https://gmgn.ai/sol/token/${mintAddress}
-    `;
+
+    // const message = `
+    // 😊New Token Detected!😊
+    // Mint Address: ${mintAddress} \n
+    // https://gmgn.ai/sol/token/${mintAddress}
+    // `;
     try {
         await bot.sendMessage(telegramChatId, message);
 

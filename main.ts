@@ -66,7 +66,7 @@ function applyWorkerResults(msg: WorkerResult) {
 }
 import Client, { CommitmentLevel, SubscribeRequest } from '@triton-one/yellowstone-grpc';
 import WebSocket from 'ws';
-import { delay, logger ,calculateSwapOutput,createATA,  PoolReserves, calculateEpochInfoFromSlot} from "./utils";
+import { delay, logger ,calculateSwapOutput,createATA,  PoolReserves, sendTelegramAlert} from "./utils";
 import BN, { max, min } from "bn.js";
 import { SqrtPriceMath  } from "@raydium-io/raydium-sdk-v2";
 import { buildArbitrageInstructionData, 
@@ -103,6 +103,7 @@ let pairAddress_accounts:Record<string, PublicKey[]>={};
 let prices:Record<string, number>={};
 let fees:Record<string, number>={};
 let isToken2022Bitmap:Record<string, boolean>={};
+let ratios:Record<string, number>={};
 const lookupTableAddress=new PublicKey("4RqDUqkQqMkbQEAXvEBr5nFhh3hhfeHxeL9gUaMCFzyh");
 let lookupTableAccount:AddressLookupTableAccount;
 let client: Client;
@@ -140,6 +141,8 @@ const program_ids={
   "pumpswap":new PublicKey("pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA"),
   "raydium":new PublicKey("675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8")
 }
+
+const excludedPairAddresses=["AYszYSUyd3uAs5Q3d9vymfExQpVHuMV6AzFHtNvwH8px","U1kF6PsPzr91sE5ZgGSnty4g1MC9cUQ9QiMDUDoacTf"];
 function ws_mig_connect(){
   try{
     // Clean up existing connection if any
@@ -236,41 +239,40 @@ async function getTokenPairaddressesFromDexscreener(tokenAddress:string) {
     for (let info of pairs){
       try{
         if(info["baseToken"]["address"]=="So11111111111111111111111111111111111111112"||info["quoteToken"]["address"]=="So11111111111111111111111111111111111111112"){
-          const supply=info["marketCap"]/info["priceUsd"];
           if(info["dexId"]=="pumpswap"){
             if(info["liquidity"] && info["liquidity"]["usd"]>=500&&info["pairAddress"]){
-              addresses[`${tokenAddress}_pumpswap_${info["pairAddress"]}_${supply}_${info["baseToken"]["address"]}_${info["quoteToken"]["address"]}`]=[new BN(0),new BN(0),new BN(0),new BN(0),new BN(0)];
+              addresses[`${tokenAddress}_pumpswap_${info["pairAddress"]}`]=[new BN(0),new BN(0),new BN(0),new BN(0),new BN(0)];
             }
           }
           if(info["dexId"]=="meteora"&&info["labels"].includes("DLMM")){
             if(info["liquidity"] && info["liquidity"]["usd"]>=500&&info["pairAddress"]){
-              addresses[`${tokenAddress}_dlmm_${info["pairAddress"]}_${supply}_${info["baseToken"]["address"]}_${info["quoteToken"]["address"]}`]=[new BN(0),new BN(0),new BN(0),new BN(0),new BN(0)];
+              addresses[`${tokenAddress}_dlmm_${info["pairAddress"]}`]=[new BN(0),new BN(0),new BN(0),new BN(0),new BN(0)];
             }
           }
           if(info["dexId"]=="raydium"&&info["labels"]==undefined){
             if(info["liquidity"] && info["liquidity"]["usd"]>=500&&info["pairAddress"]){
-              addresses[`${tokenAddress}_raydium_${info["pairAddress"]}_${supply}_${info["baseToken"]["address"]}_${info["quoteToken"]["address"]}`]=[new BN(0),new BN(0),new BN(0),new BN(0),new BN(0)];
+              addresses[`${tokenAddress}_raydium_${info["pairAddress"]}`]=[new BN(0),new BN(0),new BN(0),new BN(0),new BN(0)];
             }
           }
           if(info["dexId"]=="raydium"&&info["labels"].includes("CLMM")){
             if(info["liquidity"] && info["liquidity"]["usd"]>=500&&info["pairAddress"]){
-              addresses[`${tokenAddress}_clmm_${info["pairAddress"]}_${supply}_${info["baseToken"]["address"]}_${info["quoteToken"]["address"]}`]=[new BN(0),new BN(0),new BN(0),new BN(0),new BN(0)];
+              addresses[`${tokenAddress}_clmm_${info["pairAddress"]}`]=[new BN(0),new BN(0),new BN(0),new BN(0),new BN(0)];
             }
           }
           if(info["dexId"]=="orca"&&info["labels"].includes("wp")){
             if(info["liquidity"] && info["liquidity"]["usd"]>=500&&info["pairAddress"]){
-              addresses[`${tokenAddress}_orcawp_${info["pairAddress"]}_${supply}_${info["baseToken"]["address"]}_${info["quoteToken"]["address"]}`]=[new BN(0),new BN(0),new BN(0),new BN(0),new BN(0)];
+              addresses[`${tokenAddress}_orcawp_${info["pairAddress"]}`]=[new BN(0),new BN(0),new BN(0),new BN(0),new BN(0)];
             }
           }
           // if(info["dexId"]=="meteora"&&info["labels"].includes("DYN2")){
           //   if(info["liquidity"] && info["liquidity"]["usd"]>=50000&&info["pairAddress"]){
-          //     addresses[`${tokenAddress}_dyn2_${info["pairAddress"]}_${supply}_${info["baseToken"]["address"]}_${info["quoteToken"]["address"]}`]=[new BN(0),new BN(0),new BN(0),new BN(0),new BN(0)];
+          //     addresses[`${tokenAddress}_dyn2_${info["pairAddress"]}`]=[new BN(0),new BN(0),new BN(0),new BN(0),new BN(0)];
           //   }
           // }
           if(info["dexId"]=="raydium"&&info["labels"].includes("CPMM")){
             if(info["liquidity"] && info["liquidity"]["usd"]>=500&&info["pairAddress"]){
 
-              addresses[`${tokenAddress}_cpmm_${info["pairAddress"]}_${supply}_${info["baseToken"]["address"]}_${info["quoteToken"]["address"]}`]=[new BN(0),new BN(0),new BN(0),new BN(0),new BN(0)];
+              addresses[`${tokenAddress}_cpmm_${info["pairAddress"]}`]=[new BN(0),new BN(0),new BN(0),new BN(0),new BN(0)];
             }
           }
         }
@@ -512,7 +514,7 @@ setInterval(async () => {
   }
   // if(Object.keys(pairAddresses).length!=Object.keys(updatedPairAddresses).length){
     pairAddresses=updatedPairAddresses;
-    start_arbitrage();
+    await start_arbitrage();
   // }
 }, 600000);
 
@@ -800,6 +802,7 @@ async function startStream(){
                                 }
                                 if(pairAddress.split("_")[1]=="cpmm") {
                                   const pool_accounts=pairAddress_accounts[pairAddress];
+                                  if(!pool_accounts?.length) return;
                                   let wsolATA="";
                                   let tokenATA="";
                                   if(pool_accounts[0].toString()==NATIVE_MINT.toString()){
@@ -860,6 +863,7 @@ async function startStream(){
                                 }
                                 if(pairAddress.split("_")[1]=="dyn2") {
                                   const pool_accounts=pairAddress_accounts[pairAddress];
+                                  if(!pool_accounts?.length) return;
                                   let wsolATA="";
                                   let tokenATA="";
                                   if(pool_accounts[0].toString()==NATIVE_MINT.toString()){
@@ -968,6 +972,7 @@ async function startStream(){
                                 }
                                 if(pairAddress.split("_")[1]=="raydium") {
                                   const pool_accounts=pairAddress_accounts[pairAddress];
+                                  if(!pool_accounts?.length) return;
                                   let wsolATA="";
                                   let tokenATA="";
                                   if(pool_accounts[0].toString()==NATIVE_MINT.toString()){
@@ -1229,6 +1234,11 @@ async function start_arbitrage(){
   clearInterval(inter2);
   accountKeysForStream=[];
   stream_keys=[];
+  Object.keys(pairAddresses).map((key:string)=>{
+    if(excludedPairAddresses.includes(key.split("_")[2])){
+      delete pairAddresses[key];
+    }
+  });
   logger.info(`Total pair counts-> ${Object.keys(pairAddresses).length}`);
   // Line 1193: initial fetch runs in worker thread; main thread waits for result
   await getDexAccountsForPairs(connection, false);
@@ -1377,10 +1387,10 @@ async function findArbtrageOpportunities(
     }
     
     if(newPrice==0 || fee==undefined || fee==0) return;
-    if(params.poolAddress=="GpuWWgWuiWkn9fL6EQK55rdwQExkwQJsjuDmhnT3otdK"){
-      // console.log("orca", sig)
-      logger.info(`orca ,  ${newPrice}`);
-    }
+    // if(params.poolAddress=="GpuWWgWuiWkn9fL6EQK55rdwQExkwQJsjuDmhnT3otdK"){
+    //   // console.log("orca", sig)
+    //   logger.info(`orca ,  ${newPrice}`);
+    // }
     prices[params.poolAddress]=newPrice;
     fees[params.poolAddress]=fee;
     // console.log(fees)
@@ -1412,6 +1422,10 @@ async function findArbtrageOpportunities(
     const reserveA=pairAddresses[minPriceAddress][1];
     const reserveB=pairAddresses[maxPriceAddress][1];
     let ratio=(maxPrice - minPrice) / minPrice;
+    const prevRatio=ratios[pairAddress.split("_")[0]]
+    ratios[pairAddress.split("_")[0]]=ratio;
+    if(prevRatio==undefined) return;
+    if(prevRatio==ratio) return;
     if(totalFee>=ratio) return;
     if(!reserveA.isZero() &&!reserveB.isZero()){
       const baseAmount = min(reserveA, reserveB).div(new BN(10));
@@ -1426,12 +1440,12 @@ async function findArbtrageOpportunities(
     const profit=Number(tradeAmount)*(ratio-totalFee)/100;
     if(profit<0.000007*LAMPORTS_PER_SOL) return;
     // console.log(totalFee, ratio, tradeAmount, profit);
-    // tryArbSwap(minPriceAddress, maxPriceAddress, params.sig, tradeAmount)
+    tryArbSwap(minPriceAddress, maxPriceAddress, params.sig, tradeAmount,ratio, profit)
 
   }catch(e){console.log(e)}
 }
 let tx_sig=""
-async function tryArbSwap(sourceAddress:string, destinationAddress:string, bigTxSig:string, initialAmount:bigint){
+async function tryArbSwap(sourceAddress:string, destinationAddress:string, bigTxSig:string, initialAmount:bigint, ratio:number, profit:number){
   try{
     const token=sourceAddress.split("_")[0];
     const mints:MintInfo[]=[
@@ -1462,7 +1476,7 @@ async function tryArbSwap(sourceAddress:string, destinationAddress:string, bigTx
       let hop_2_accounts:PublicKey[]=[];
       let hop_1_isBaseSwap=true;
       let hop_2_isBaseSwap=true;
-      if(!accounts1.length || !accounts2.length) return;
+      if(!accounts1?.length || !accounts2?.length) return;
       accounts1=[...accounts1];
       accounts2=[...accounts2];
       const hop_1_XMint=accounts1.shift();
@@ -1704,6 +1718,44 @@ async function tryArbSwap(sourceAddress:string, destinationAddress:string, bigTx
           accounts:hop_2_accounts
         };
       }
+      if(!mints[1].is2022&&(hop1.dexProgram==DexProgram.RaydiumClmm||hop2.dexProgram==DexProgram.RaydiumClmm)){
+        return;
+      }
+      const message=`
+Arbitrage opportunity found!
+Price Difference Ratio:  ${ratio*100}%
+Trade Amount:  ${Number(initialAmount)/LAMPORTS_PER_SOL} SOL
+Profit:  ${profit/LAMPORTS_PER_SOL} SOL
+Hop1:{
+  pooladdress:
+    ${hop_1_pairaddress}
+  dex:  ${sourceAddress.split("_")[1]}
+  dexProgramId:
+    ${hop1.dexProgramId}
+  inToken:
+    ${mints[0].mint.toBase58()}
+  outToken:
+    ${mints[1].mint.toBase58()}
+  inTokenIs2022:  ${hop1.inTokenIs2022}
+  outTokenIs2022:  ${hop1.outTokenIs2022}
+  isBaseSwap:  ${hop1.isBaseSwap}
+}
+Hop2:{
+  pooladdress:
+    ${hop_2_pairaddress}
+  dex:  ${destinationAddress.split("_")[1]}
+  dexProgramId:
+    ${hop2.dexProgramId}
+  inToken:
+    ${mints[1].mint.toBase58()}
+  outToken:
+    ${mints[0].mint.toBase58()}
+  inTokenIs2022:  ${hop2.inTokenIs2022}
+  outTokenIs2022:  ${hop2.outTokenIs2022}
+  isBaseSwap:  ${hop2.isBaseSwap}
+}
+      `;
+      // sendTelegramAlert(message);
       const { accounts, hops } = buildArbitrageAccounts(wallet.publicKey, mints, [hop1, hop2]);
       
       // const initialAmount = BigInt(QUOTE_AMOUNT * LAMPORTS_PER_SOL);
