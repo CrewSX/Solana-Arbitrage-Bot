@@ -23,6 +23,7 @@
     "@solana/web3.js": "^1.89.1",
     "@supercharge/queue-datastructure": "^2.1.0",
     "@triton-one/yellowstone-grpc": "^4.0.0",
+    "@validators-dao/solana-stream-sdk": "^1.2.0",
     "axios": "^1.10.0",
     "bigint-buffer": "^1.1.5",
     "bn.js": "^5.2.1",
