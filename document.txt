@@ -1,0 +1,314 @@
+================================================================================
+                    SOLANA ARBITRAGE BOT — DETAILED DOCUMENT
+================================================================================
+
+This document explains how to set up, run, and understand the bot so you can
+use it or pass it to someone else without getting lost.
+
+--------------------------------------------------------------------------------
+1. WHAT THE BOT DOES
+--------------------------------------------------------------------------------
+
+The bot watches several Solana DEXes (PumpSwap, Raydium, Meteora, Orca, etc.)
+and looks for price differences for the same token across different pools.
+When it finds a profitable spread (buy low on one DEX, sell high on another),
+it can build and send an arbitrage transaction.
+
+Flow in short:
+  1. Load token list from tokens.txt.
+  2. Fetch pair addresses for those tokens (from Dexscreener API and/or RPC).
+  3. Subscribe to real-time transactions via Yellowstone gRPC.
+  4. When a swap touches a tracked pool, update reserves and check for
+     arbitrage across all pairs of that token.
+  5. If profit > threshold, build a 2-hop swap and send via RPC or Jito.
+
+Supported DEXes: PumpSwap, Raydium (AMM v4, CPMM, CLMM), Orca Whirlpool,
+Meteora DLMM (and related). The arbitrage program on-chain is used to execute
+the multi-hop swap.
+
+--------------------------------------------------------------------------------
+2. PREREQUISITES
+--------------------------------------------------------------------------------
+
+  - Node.js (v18 or newer recommended)
+  - npm (comes with Node)
+  - A Solana wallet with some SOL (for fees + capital if you enable live swaps)
+  - RPC and gRPC access (Helius, Triton, or similar; see env vars below)
+
+--------------------------------------------------------------------------------
+3. INSTALLATION
+--------------------------------------------------------------------------------
+
+  1. Clone or copy the project folder.
+
+  2. Install dependencies:
+       npm install
+
+  3. Create your config file:
+       - Copy .env.example to .env
+       - Fill in all required values (see section 4).
+
+  4. Create tokens.txt in the project root:
+       - One token mint address per line (Solana base58).
+       - Empty lines are skipped.
+       - Example:
+             So11111111111111111111111111111111111111112
+             7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs
+
+  5. Start the bot:
+       npm start
+
+  Other useful commands:
+       npm run test          — run swap calculation tests
+       npm run createAlt     — create Address Lookup Table (see alts.txt)
+
+--------------------------------------------------------------------------------
+4. ENVIRONMENT VARIABLES (.env)
+--------------------------------------------------------------------------------
+
+Copy .env.example to .env and set these. The bot will not start if required
+ones are missing.
+
+  REQUIRED (core)
+  ---------------
+  PRIVATE_KEY
+    Your wallet secret key (base58). Used to sign transactions and create ATAs.
+    Never share this or commit .env to git.
+
+  RPC_ENDPOINT
+    Solana RPC URL for reading data (getProgramAccounts, getAccountInfo, etc.).
+    Example: https://mainnet.helius-rpc.com/?api-key=YOUR_KEY
+
+  SWQOS_ENDPOINT
+    RPC URL used specifically for sending transactions (can be same as RPC_ENDPOINT
+    or a dedicated send-only endpoint for lower latency).
+
+  GRPC_ENDPOINT
+    Yellowstone gRPC endpoint for streaming transactions (e.g. Triton/Helius).
+    The bot subscribes here to see swaps in real time.
+
+  API_KEY
+    API key for the gRPC provider (often same as RPC provider).
+
+  COMMITMENT_LEVEL
+    Solana commitment: "processed", "confirmed", or "finalized".
+    "processed" is fastest; "confirmed" is a good balance.
+
+  QUOTE_AMOUNT
+    Quote size in SOL for arbitrage (e.g. 1 = 1 SOL). Used in profit/trade sizing.
+
+  SLIPPAGE
+    Slippage tolerance for swaps (e.g. 0.01 = 1%).
+
+  MINIMUM_PROFIT
+    Minimum profit in SOL to attempt a swap (e.g. 0.001).
+
+  BLOCK_ENGINE_URL
+    Jito Block Engine URL (if you use Jito for sending txs).
+    Example: https://mainnet.block-engine.jito.wtf
+
+  ISJITO
+    "true" = send transactions via Jito; "false" = send via SWQOS_ENDPOINT.
+
+
+  OPTIONAL (recommended for production)
+  -------------------------------------
+  HELIUS_RPC_ENDPOINT
+    If you use Helius for getProgramAccounts (avoids "too many accounts" with
+    getProgramAccountsV2 pagination).
+
+  SHRED_ENDPOINT
+    ShredStream endpoint for earlier transaction data (optional).
+
+  X_API_KEY
+    Used for some external APIs (e.g. Dexscreener or other services if needed).
+
+  PRICE_DIFFERENCE_PERCENTAGE
+    Minimum price spread between pools to consider (if used in logic).
+
+  TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+    For Telegram alerts (see utils/sendtgalert.ts). Leave empty to disable.
+
+
+  OPTIONAL (tuning)
+  -----------------
+  USE_DEX_ACCOUNTS_WORKER
+    Set to "false" to run getDexAccounts on the main thread instead of a worker.
+    Default is true (worker on). Use false only for debugging.
+
+--------------------------------------------------------------------------------
+5. PROJECT STRUCTURE (FILES AND FOLDERS)
+--------------------------------------------------------------------------------
+
+  Root
+  ----
+  main.ts
+    Entry point. Handles: loading tokens, fetching pair addresses (Dexscreener +
+    RPC), subscribing to gRPC streams, detecting arbitrage, building and sending
+    swap transactions. Start here when reading code.
+
+  tokens.txt
+    List of token mint addresses (one per line). The bot fetches pair addresses
+    for these tokens and watches their pools.
+
+  .env
+    Your secrets and config (never commit). Copy from .env.example.
+
+  document.txt
+    This file.
+
+  pump_fee.txt
+    Explains Pump.fun fee structure (for reference).
+
+  alts.txt
+    List of account addresses that are stored in the Address Lookup Table (ALT).
+    ALT reduces transaction size so more accounts fit in one tx. If you need to
+    add accounts, edit alts.txt and run: npm run createAlt (see utils for
+    createALT). The created ALT address must be updated in main.ts (lookupTableAddress).
+
+
+  constants/
+  ----------
+  constants.ts
+    Loads and exports environment variables from .env (PRIVATE_KEY, RPC_ENDPOINT,
+    QUOTE_AMOUNT, etc.). Other files import config from here.
+
+
+  utils/
+  ------
+  getDexAccounts.ts
+    For each DEX (PumpSwap, Raydium, Orca, Meteora, etc.), returns the list of
+    account public keys needed to build a swap instruction. The bot uses these
+    when building the arbitrage transaction.
+
+  getDexFee.ts
+    Fetches or computes the fee for a given pool (per DEX). Needed to compute
+    net arbitrage profit correctly. Caches CPMM/CLMM fees to avoid repeated RPC.
+
+  In main.ts, getTokenPairaddresses()
+    Fetches pool addresses for a token from RPC (getProgramAccounts / Helius V2).
+    Used in addition to Dexscreener to discover pairs when needed.
+
+  swap_calculations.ts
+    Swap math (output amount, price impact, etc.). Used for profit estimation;
+    some paths may use different logic in main.
+
+  utils.ts
+    General helpers: delay, logger, createATA, PoolReserves type, etc.
+
+  logger.ts
+    Logging (e.g. Pino). Used across the bot.
+
+  sendtgalert.ts
+    Sends messages to Telegram. Optional; only used if TELEGRAM_BOT_TOKEN and
+    TELEGRAM_CHAT_ID are set.
+
+  parse_transaction.ts
+    Transaction parsing helpers if used elsewhere.
+
+  index.ts
+    Re-exports utils for cleaner imports.
+
+
+  workers/
+  --------
+  getDexAccounts.worker.ts
+    Worker thread that runs getDexAccounts for many pairs in parallel. Keeps
+    the main thread free for gRPC so streaming is not delayed. Controlled by
+    USE_DEX_ACCOUNTS_WORKER.
+
+
+  program/
+  --------
+  instruction.ts (and related)
+    Builds the arbitrage program instruction and account list (multi-hop swap).
+    Interfaces with the on-chain arbitrage program.
+
+  idls/ (if present)
+    IDLs for DEX programs (PumpSwap, Meteora DLMM, Orca WP, Raydium, etc.).
+    Mainly for reference; the bot uses SDKs and getDexAccounts rather than
+    parsing IDLs at runtime.
+
+
+  Other
+  -----
+  package.json
+    Scripts: npm start (main.ts), npm run test, npm run createAlt.
+  tsconfig.json
+    TypeScript config.
+  README.md
+    High-level project overview and usage.
+
+--------------------------------------------------------------------------------
+6. IMPORTANT BEHAVIORS TO KNOW
+--------------------------------------------------------------------------------
+
+  Token list and Dexscreener
+  - The bot reads tokens from tokens.txt and fetches pair addresses from the
+    Dexscreener API (getTokenPairaddressesFromDexscreener). Dexscreener has a
+    rate limit (e.g. 300 requests per time window). The code batches requests
+    (e.g. 30 at a time) and pauses after 300 requests to avoid 429 errors.
+    If you use many tokens (e.g. 250+), startup or the 10-minute refresh will
+    take longer due to these pauses.
+
+  gRPC streaming
+  - The bot subscribes to transactions that touch your tracked pool addresses.
+    When a swap happens, it updates pool state and runs the arbitrage check.
+    Keeping the main thread free (worker for getDexAccounts, batched Dexscreener
+    calls) avoids gRPC delays.
+
+  Jito vs normal RPC
+  - If ISJITO=true, transactions are sent through Jito Block Engine (tip + bundle).
+    You need BLOCK_ENGINE_URL and a funded wallet for tips. If ISJITO=false,
+    transactions are sent via SWQOS_ENDPOINT.
+
+  Address Lookup Table (ALT)
+  - The on-chain program and swap logic use an ALT to shrink transaction size.
+    The ALT address is hardcoded in main.ts (lookupTableAddress). If you create
+    a new ALT with createAlt (and alts.txt), you must update that variable.
+
+--------------------------------------------------------------------------------
+7. QUICK START CHECKLIST
+--------------------------------------------------------------------------------
+
+  [ ] Node.js and npm installed
+  [ ] Project cloned/copied, npm install run
+  [ ] .env created from .env.example, all required variables set
+  [ ] tokens.txt created with at least one token mint per line
+  [ ] Wallet has some SOL (for fees and, if trading, for capital)
+  [ ] RPC and gRPC endpoints are correct and reachable
+  [ ] Run: npm start
+
+--------------------------------------------------------------------------------
+8. TROUBLESHOOTING
+--------------------------------------------------------------------------------
+
+  - "Too many accounts" / getProgramAccounts errors
+    Use a Helius RPC (or similar) that supports getProgramAccountsV2 with
+    pagination, and set RPC_ENDPOINT (or HELIUS_RPC_ENDPOINT) accordingly.
+    The code already uses V2 with a limit when configured.
+
+  - 429 from Dexscreener
+    The bot limits to 300 requests per window and waits ~65s before continuing.
+    If you still hit 429, reduce token count or increase the wait (constants
+    in main.ts: DEXSCREENER_MAX_REQUESTS_PER_WINDOW, DEXSCREENER_RATE_LIMIT_WAIT_MS).
+
+  - gRPC stream delayed or no data
+    Ensure GRPC_ENDPOINT and API_KEY are correct. If you have many tokens,
+    keep USE_DEX_ACCOUNTS_WORKER=true so the worker does heavy account
+    fetching and the main thread stays responsive for gRPC.
+
+  - Transactions not landing
+    Check SWQOS_ENDPOINT (or Jito), balance, and slippage. For Jito, ensure
+    BLOCK_ENGINE_URL and tip account are set and funded.
+
+--------------------------------------------------------------------------------
+9. CONTACT / SUPPORT
+--------------------------------------------------------------------------------
+
+  For questions or issues about this bot, refer to the repository owner or
+  the contact details in README.md (e.g. Telegram, Discord).
+
+================================================================================
+                              END OF DOCUMENT
+================================================================================

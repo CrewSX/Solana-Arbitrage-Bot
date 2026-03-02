@@ -287,10 +287,66 @@ async function getTokenPairaddressesFromDexscreener(tokenAddress:string) {
     return {};
   }
 }
-async function getTokenPairaddresses(tokenAddress:string) {
+
+const GPA_V2_LIMIT = 10000;
+
+type ProgramAccountResult = Array<{ pubkey: PublicKey; account: { executable: boolean; owner: PublicKey; lamports: number; rentEpoch?: number; data: Buffer } }>;
+
+/** Helius getProgramAccountsV2 – single request with limit (same response shape as getProgramAccounts). */
+async function getProgramAccountsV2(
+  rpcUrl: string,
+  programId: string,
+  options: { filters: Array<{ dataSize: number } | { memcmp: { offset: number; bytes: string } }>; dataSlice?: { offset: number; length: number }; limit?: number }
+): Promise<ProgramAccountResult> {
+  const limit = options.limit ?? GPA_V2_LIMIT;
+  const body = {
+    jsonrpc: "2.0",
+    id: "1",
+    method: "getProgramAccountsV2",
+    params: [
+      programId,
+      {
+        encoding: "base64",
+        filters: options.filters,
+        ...(options.dataSlice && { dataSlice: options.dataSlice }),
+        commitment: "confirmed",
+        limit,
+      },
+    ],
+  };
+  const res = await fetch(rpcUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = (await res.json()) as {
+    error?: { message?: string };
+    result?: { accounts?: Array<{ pubkey: string; account: { executable?: boolean; owner: string; lamports?: number; rentEpoch?: number; data?: string | [string, string] } }> };
+  };
+  if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+  const accounts = data.result?.accounts ?? [];
+  return accounts.map((item) => {
+    const pubkey = new PublicKey(item.pubkey);
+    const acc = item.account;
+    const dataBuf = Array.isArray(acc.data) ? Buffer.from(acc.data[0], "base64") : Buffer.from(acc.data ?? "", "base64");
+    return {
+      pubkey,
+      account: {
+        executable: acc.executable ?? false,
+        owner: new PublicKey(acc.owner),
+        lamports: acc.lamports ?? 0,
+        rentEpoch: acc.rentEpoch,
+        data: dataBuf,
+      },
+    };
+  });
+}
+
+async function getTokenPairaddresses(tokenAddress: string) {
   try {
 
     const addresses: Record<string, BN[]> = {};
+    const opts = { dataSlice: { offset: 0, length: 0 }, limit: GPA_V2_LIMIT };
 
     const [
       pumpamm_basePools,
@@ -306,89 +362,53 @@ async function getTokenPairaddresses(tokenAddress:string) {
       meteoradlmm_basePools,
       meteoradlmm_quotePools,
     ] = await Promise.all([
-      connection.getProgramAccounts(new PublicKey("pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA"), {
-        dataSlice: { offset: 0, length: 0 },
-        filters: [
-          { dataSize: 301 },
-          { memcmp: { offset: 43, bytes: tokenAddress } },
-        ],
+      getProgramAccountsV2(RPC_ENDPOINT, "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA", {
+        ...opts,
+        filters: [{ dataSize: 301 }, { memcmp: { offset: 43, bytes: tokenAddress } },{ memcmp: { offset: 75, bytes: NATIVE_MINT.toString() } }],
       }),
-      connection.getProgramAccounts(new PublicKey("pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA"), {
-        dataSlice: { offset: 0, length: 0 },
-        filters: [
-          { dataSize: 301 },
-          { memcmp: { offset: 75, bytes: tokenAddress } },
-        ],
+      getProgramAccountsV2(RPC_ENDPOINT, "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA", {
+        ...opts,
+        filters: [{ dataSize: 301 }, { memcmp: { offset: 75, bytes: tokenAddress } },{ memcmp: { offset: 43, bytes: NATIVE_MINT.toString() } }],
       }),
-      connection.getProgramAccounts(new PublicKey("675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8"), {
-        dataSlice: { offset: 0, length: 0 },
-        filters: [
-          { dataSize: 752 },
-          { memcmp: { offset: 400, bytes: tokenAddress } },
-        ],
+      getProgramAccountsV2(RPC_ENDPOINT, "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8", {
+        ...opts,
+        filters: [{ dataSize: 752 }, { memcmp: { offset: 400, bytes: tokenAddress } },{ memcmp: { offset: 432, bytes: NATIVE_MINT.toString() } }],
       }),
-      connection.getProgramAccounts(new PublicKey("675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8"), {
-        dataSlice: { offset: 0, length: 0 },
-        filters: [
-          { dataSize: 752 },
-          { memcmp: { offset: 432, bytes: tokenAddress } },
-        ],
+      getProgramAccountsV2(RPC_ENDPOINT, "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8", {
+        ...opts,
+        filters: [{ dataSize: 752 }, { memcmp: { offset: 432, bytes: tokenAddress } },{ memcmp: { offset: 400, bytes: NATIVE_MINT.toString() } }],
       }),
-      connection.getProgramAccounts(new PublicKey("CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C"), {
-        dataSlice: { offset: 0, length: 0 },
-        filters: [
-          { dataSize: 637 },
-          { memcmp: { offset: 168, bytes: tokenAddress } },
-        ],
+      getProgramAccountsV2(RPC_ENDPOINT, "CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C", {
+        ...opts,
+        filters: [{ dataSize: 637 }, { memcmp: { offset: 168, bytes: tokenAddress } },{ memcmp: { offset: 200, bytes: NATIVE_MINT.toString() } }],
       }),
-      connection.getProgramAccounts(new PublicKey("CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C"), {
-        dataSlice: { offset: 0, length: 0 },
-        filters: [
-          { dataSize: 637 },
-          { memcmp: { offset: 200, bytes: tokenAddress } },
-        ],
+      getProgramAccountsV2(RPC_ENDPOINT, "CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C", {
+        ...opts,
+        filters: [{ dataSize: 637 }, { memcmp: { offset: 200, bytes: tokenAddress } },{ memcmp: { offset: 168, bytes: NATIVE_MINT.toString() } }],
       }),
-      connection.getProgramAccounts(new PublicKey("CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK"), {
-        dataSlice: { offset: 0, length: 0 },
-        filters: [
-          { dataSize: 1544 },
-          { memcmp: { offset: 41, bytes: tokenAddress } },
-        ],
+      getProgramAccountsV2(RPC_ENDPOINT, "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK", {
+        ...opts,
+        filters: [{ dataSize: 1544 }, { memcmp: { offset: 73, bytes: tokenAddress } },{ memcmp: { offset: 105, bytes: NATIVE_MINT.toString() } }],
       }),
-      connection.getProgramAccounts(new PublicKey("CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK"), {
-        dataSlice: { offset: 0, length: 0 },
-        filters: [
-          { dataSize: 1544 },
-          { memcmp: { offset: 73, bytes: tokenAddress } },
-        ],
+      getProgramAccountsV2(RPC_ENDPOINT, "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK", {
+        ...opts,
+        filters: [{ dataSize: 1544 }, { memcmp: { offset: 105, bytes: tokenAddress } },{ memcmp: { offset: 73, bytes: NATIVE_MINT.toString() } }],
       }),
-      connection.getProgramAccounts(new PublicKey("whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc"), {
-        dataSlice: { offset: 0, length: 0 },
-        filters: [
-          { dataSize: 653 },
-          { memcmp: { offset: 101, bytes: tokenAddress } },
-        ],
+      getProgramAccountsV2(RPC_ENDPOINT, "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc", {
+        ...opts,
+        filters: [{ dataSize: 653 }, { memcmp: { offset: 101, bytes: tokenAddress } },{ memcmp: { offset: 181, bytes: NATIVE_MINT.toString() } }],
       }),
-      connection.getProgramAccounts(new PublicKey("whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc"), {
-        dataSlice: { offset: 0, length: 0 },
-        filters: [
-          { dataSize: 653 },
-          { memcmp: { offset: 197, bytes: tokenAddress } },
-        ],
+      getProgramAccountsV2(RPC_ENDPOINT, "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc", {
+        ...opts,
+        filters: [{ dataSize: 653 }, { memcmp: { offset: 181, bytes: tokenAddress } },{ memcmp: { offset: 101, bytes: NATIVE_MINT.toString() } }],
       }),
-      connection.getProgramAccounts(new PublicKey("LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo"), {
-        dataSlice: { offset: 0, length: 0 },
-        filters: [
-          { dataSize: 904 },
-          { memcmp: { offset: 88, bytes: tokenAddress } },
-        ],
+      getProgramAccountsV2(RPC_ENDPOINT, "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo", {
+        ...opts,
+        filters: [{ dataSize: 904 }, { memcmp: { offset: 88, bytes: tokenAddress } },{ memcmp: { offset: 120, bytes: NATIVE_MINT.toString() } }],
       }),
-      connection.getProgramAccounts(new PublicKey("LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo"), {
-        dataSlice: { offset: 0, length: 0 },
-        filters: [
-          { dataSize: 904 },
-          { memcmp: { offset: 120, bytes: tokenAddress } },
-        ],
+      getProgramAccountsV2(RPC_ENDPOINT, "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo", {
+        ...opts,
+        filters: [{ dataSize: 904 }, { memcmp: { offset: 120, bytes: tokenAddress } },{ memcmp: { offset: 88, bytes: NATIVE_MINT.toString() } }],
       }),
     ]);
 
@@ -466,7 +486,7 @@ async function getTokenPairaddresses(tokenAddress:string) {
     const batch = tokens.slice(i, i + 290);
     const promises: Promise<Record<string, BN[]>>[] = [];
     for (let j = 0; j < batch.length; j++) {
-      promises.push(getTokenPairaddressesFromDexscreener(batch[j]));
+      promises.push(getTokenPairaddresses(batch[j]));
     }
     const pairAddressesResults = await Promise.allSettled(promises);
     pairAddressesResults.forEach((result, index) => {
@@ -500,7 +520,7 @@ setInterval(async () => {
     const batch = tokens.slice(i, i + 290);
     const promises: Promise<Record<string, BN[]>>[] = [];
     for (let j = 0; j < batch.length; j++) {
-      promises.push(getTokenPairaddressesFromDexscreener(batch[j]));
+      promises.push(getTokenPairaddresses(batch[j]));
     }
     const pairAddressesResults = await Promise.allSettled(promises);
     pairAddressesResults.forEach((result, index) => {
@@ -1085,10 +1105,10 @@ async function startStream(){
                                   // findArbtrageOpportunities(pairAddress, "clmm", isBuy, tradeAmount, poolReserves, sig)
                                 }
                                 if(pairAddress.split("_")[1]=="orcawp") {
-                                  if(key=="GpuWWgWuiWkn9fL6EQK55rdwQExkwQJsjuDmhnT3otdK"){
-                                    // console.log("orca", sig)
-                                    logger.info(`orca ,  ${sig}`);
-                                  }
+                                  // if(key=="GpuWWgWuiWkn9fL6EQK55rdwQExkwQJsjuDmhnT3otdK"){
+                                  //   // console.log("orca", sig)
+                                  //   logger.info(`orca ,  ${sig}`);
+                                  // }
                                   for (let i = 0; i < data.transaction.transaction.meta.preTokenBalances.length; i++) {
                                     const balance = data.transaction.transaction.meta.preTokenBalances[i];
                                     if(balance.owner==key){
@@ -1245,10 +1265,10 @@ async function start_arbitrage(){
     }
   });
   logger.info(`Total pair counts-> ${Object.keys(pairAddresses).length}`);
-  // console.log(pairAddresses)
+  console.log(pairAddresses)
   // Line 1193: initial fetch runs in worker thread; main thread waits for result
   await getDexAccountsForPairs(connection, false);
-  // Optional: refresh dex accounts periodically. Use USE_DEX_ACCOUNTS_WORKER=true to avoid delaying gRPC.
+  // Lines 1194-1196: interval runs getDexAccountsForPairs in worker thread (noAwait = don't block main thread)
   inter2=setInterval(()=>{
      getDexAccountsForPairs(connection, true, { noAwait: true });
   }, 5000);
@@ -1445,7 +1465,7 @@ async function findArbtrageOpportunities(
     const profit=Number(tradeAmount)*(ratio-totalFee)/100;
     if(profit<MINIMUM_PROFIT*LAMPORTS_PER_SOL) return;
     // console.log(totalFee, ratio, tradeAmount, profit);
-    // tryArbSwap(minPriceAddress, maxPriceAddress, params.sig, tradeAmount,ratio, profit)
+    tryArbSwap(minPriceAddress, maxPriceAddress, params.sig, tradeAmount,ratio, profit)
 
   }catch(e){console.log(e)}
 }
@@ -1726,41 +1746,41 @@ async function tryArbSwap(sourceAddress:string, destinationAddress:string, bigTx
       if(!mints[1].is2022&&(hop1.dexProgram==DexProgram.RaydiumClmm||hop2.dexProgram==DexProgram.RaydiumClmm)){
         return;
       }
-//       const message=`
-// Arbitrage opportunity found!
-// Price Difference Ratio:  ${ratio*100}%
-// Trade Amount:  ${Number(initialAmount)/LAMPORTS_PER_SOL} SOL
-// Profit:  ${profit/LAMPORTS_PER_SOL} SOL
-// Hop1:{
-//   pooladdress:
-//     ${hop_1_pairaddress}
-//   dex:  ${sourceAddress.split("_")[1]}
-//   dexProgramId:
-//     ${hop1.dexProgramId}
-//   inToken:
-//     ${mints[0].mint.toBase58()}
-//   outToken:
-//     ${mints[1].mint.toBase58()}
-//   inTokenIs2022:  ${hop1.inTokenIs2022}
-//   outTokenIs2022:  ${hop1.outTokenIs2022}
-//   isBaseSwap:  ${hop1.isBaseSwap}
-// }
-// Hop2:{
-//   pooladdress:
-//     ${hop_2_pairaddress}
-//   dex:  ${destinationAddress.split("_")[1]}
-//   dexProgramId:
-//     ${hop2.dexProgramId}
-//   inToken:
-//     ${mints[1].mint.toBase58()}
-//   outToken:
-//     ${mints[0].mint.toBase58()}
-//   inTokenIs2022:  ${hop2.inTokenIs2022}
-//   outTokenIs2022:  ${hop2.outTokenIs2022}
-//   isBaseSwap:  ${hop2.isBaseSwap}
-// }
-//       `;
-//       sendTelegramAlert(message);
+      const message=`
+Arbitrage opportunity found!
+Price Difference Ratio:  ${ratio*100}%
+Trade Amount:  ${Number(initialAmount)/LAMPORTS_PER_SOL} SOL
+Profit:  ${profit/LAMPORTS_PER_SOL} SOL
+Hop1:{
+  pooladdress:
+    ${hop_1_pairaddress}
+  dex:  ${sourceAddress.split("_")[1]}
+  dexProgramId:
+    ${hop1.dexProgramId}
+  inToken:
+    ${mints[0].mint.toBase58()}
+  outToken:
+    ${mints[1].mint.toBase58()}
+  inTokenIs2022:  ${hop1.inTokenIs2022}
+  outTokenIs2022:  ${hop1.outTokenIs2022}
+  isBaseSwap:  ${hop1.isBaseSwap}
+}
+Hop2:{
+  pooladdress:
+    ${hop_2_pairaddress}
+  dex:  ${destinationAddress.split("_")[1]}
+  dexProgramId:
+    ${hop2.dexProgramId}
+  inToken:
+    ${mints[1].mint.toBase58()}
+  outToken:
+    ${mints[0].mint.toBase58()}
+  inTokenIs2022:  ${hop2.inTokenIs2022}
+  outTokenIs2022:  ${hop2.outTokenIs2022}
+  isBaseSwap:  ${hop2.isBaseSwap}
+}
+      `;
+      sendTelegramAlert(message);
       const { accounts, hops } = buildArbitrageAccounts(wallet.publicKey, mints, [hop1, hop2]);
       
       // const initialAmount = BigInt(QUOTE_AMOUNT * LAMPORTS_PER_SOL);
@@ -1870,16 +1890,8 @@ async function getDexAccountsForPairs(connection:Connection, retry:Boolean, opti
     return;
   }
 
-  if (noAwait) {
-    void getDexAccountsForPairsMainThread(connection, retry, accounts).catch((e) =>
-      logger.error("getDexAccountsForPairs main thread (noAwait):", e)
-    );
-    return;
-  }
   await getDexAccountsForPairsMainThread(connection, retry, accounts);
 }
-
-const DEX_ACCOUNTS_CHUNK_SIZE = 25;
 
 async function getDexAccountsForPairsMainThread(connection: Connection, retry: Boolean, accounts: string[]) {
   const toFetch =
@@ -1889,28 +1901,21 @@ async function getDexAccountsForPairsMainThread(connection: Connection, retry: B
             !["pumpswap", "cpmm", "dyn2", "raydium"].includes(a.split("_")[1])
         )
       : accounts;
-
-  for (let i = 0; i < toFetch.length; i += DEX_ACCOUNTS_CHUNK_SIZE) {
-    const chunk = toFetch.slice(i, i + DEX_ACCOUNTS_CHUNK_SIZE);
-    const promises = chunk.map(async (account) => {
-      try {
-        const dex = account.split("_")[1];
-        const poolAddress = account.split("_")[2];
-        const dexaccounts = await getDexAccounts(dex, poolAddress, connection, wallet);
-        return { account, accounts1: dexaccounts?.accounts };
-      } catch (error) {
-        logger.error(`Error fetching dex accounts for ${account}: ${error}`);
-        return { account, accounts1: undefined };
-      }
-    });
-    const results = await Promise.all(promises);
-    for (const result of results) {
-      if (result.accounts1 !== undefined)
-        pairAddress_accounts[result.account] = result.accounts1;
+  const promises = toFetch.map(async (account) => {
+    try {
+      const dex = account.split("_")[1];
+      const poolAddress = account.split("_")[2];
+      const dexaccounts = await getDexAccounts(dex, poolAddress, connection, wallet);
+      return { account, accounts1: dexaccounts?.accounts };
+    } catch (error) {
+      logger.error(`Error fetching dex accounts for ${account}: ${error}`);
+      return { account, accounts1: undefined };
     }
-    if (i + DEX_ACCOUNTS_CHUNK_SIZE < toFetch.length) {
-      await delay(0);
-    }
+  });
+  const results = await Promise.all(promises);
+  for (const result of results) {
+    if (result.accounts1 !== undefined)
+      pairAddress_accounts[result.account] = result.accounts1;
   }
 }
 

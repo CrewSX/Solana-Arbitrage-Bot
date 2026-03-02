@@ -9,6 +9,10 @@ import {TradeDirection,  getMaxFeeNumerator, getBaseFeeHandler, getTotalTradingF
 import {} from '@orca-so/whirlpools-sdk';
 
 import {  } from "@orca-so/whirlpools-sdk";
+
+const cpmm_fees: Record<string, number> = {};
+const clmm_fees: Record<string, number> = {};
+
 export async function getDexFee(
     connection:Connection,
     params:{
@@ -83,7 +87,6 @@ export async function getDexFee(
     if(params.dex=="raydium"){
         return 0.25;
     }
-    let cpmm_fees: Record<string, number> = {};
     if(params.dex=="cpmm"){
         try{
             if(!cpmm_fees[params.poolAddress]){
@@ -105,7 +108,6 @@ export async function getDexFee(
             return 4;
         }
     }
-    let clmm_fees: Record<string, number> = {};
     if(params.dex=="clmm"){
         try{
             if(!clmm_fees[params.poolAddress]){
