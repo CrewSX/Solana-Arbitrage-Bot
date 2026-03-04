@@ -7,8 +7,6 @@ import { buildWhirlpoolClient, PDAUtil,TickUtil,TickArrayUtil, SwapUtils, Whirlp
 import { Wallet } from "@coral-xyz/anchor";
 import DLMM ,{getPriceOfBinByBinId} from "@meteora-ag/dlmm";
 import { CpAmm } from "@meteora-ag/cp-amm-sdk";
-import {LiquidityStateV4} from '@raydium-io/raydium-sdk';
-import { logger } from "./logger";
 let raydium: Raydium;
 const PUMPFUN_AMM_PROGRAM_ID = new PublicKey('pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA');
 export async function getDexAccounts(dex: string, poolAddress: string, connection: Connection, wallet:Keypair){

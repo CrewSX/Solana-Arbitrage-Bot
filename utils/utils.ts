@@ -1,16 +1,12 @@
-import { Logger } from 'pino';
 import dotenv from 'dotenv';
 import { PublicKey, Transaction, SystemProgram, Keypair , AddressLookupTableProgram, TransactionMessage, VersionedTransaction, sendAndConfirmRawTransaction} from '@solana/web3.js';
 import { Connection } from '@solana/web3.js';
-import BN from 'bn.js';
-import { publicKey } from '@raydium-io/raydium-sdk-v2';
 import { ASSOCIATED_TOKEN_PROGRAM_ID, createAssociatedTokenAccountInstruction, createSyncNativeInstruction, getAssociatedTokenAddressSync, NATIVE_MINT, TOKEN_PROGRAM_ID as SPL_TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID, } from '@solana/spl-token';
 
 dotenv.config();
 import fs from "fs";
-import { logger } from './logger';
 
-export const retrieveEnvVariable = (variableName: string, logger: Logger) => {
+export const retrieveEnvVariable = (variableName: string, logger: { error: (msg: string) => void }) => {
   const variable = process.env[variableName] || '';
   if (!variable) {
     logger.error(`${variableName} is not set`);

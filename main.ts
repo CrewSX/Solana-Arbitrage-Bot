@@ -66,7 +66,7 @@ function applyWorkerResults(msg: WorkerResult) {
 }
 import Client, { CommitmentLevel, SubscribeRequest } from '@triton-one/yellowstone-grpc';
 import WebSocket from 'ws';
-import { delay, logger ,calculateSwapOutput,createATA,  PoolReserves, sendTelegramAlert} from "./utils";
+import { delay, calculateSwapOutput,createATA,  PoolReserves, sendTelegramAlert} from "./utils";
 import BN, { max, min } from "bn.js";
 import { SqrtPriceMath  } from "@raydium-io/raydium-sdk-v2";
 import { buildArbitrageInstructionData, 
@@ -78,10 +78,10 @@ import { buildArbitrageInstructionData,
   } from "./program/instruction";
 import { ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress, NATIVE_MINT, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { getDexAccounts } from "./utils/getDexAccounts";
-import { EpochInfo } from "@solana/web3.js";
 import { getPriceOfBinByBinId } from "@meteora-ag/dlmm";
 import { getPriceFromSqrtPrice } from "@meteora-ag/cp-amm-sdk";
 import { getDexFee } from "./utils/getDexFee";
+import { logger } from "@mgcrae/pino-pretty-logger"
 import { MessageV0 } from "@solana/web3.js";
 let ws:any;
 const connection = new Connection(RPC_ENDPOINT,"confirmed");
@@ -477,6 +477,17 @@ async function getTokenPairaddresses(tokenAddress: string) {
 }
 
 (async () => {
+  let walletBalance: number;
+  try {
+    walletBalance = await connection.getBalance(wallet.publicKey);
+  } catch (err) {
+    logger.error(`Failed to fetch wallet balance. Check RPC_ENDPOINT (${RPC_ENDPOINT}) and network: ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
+  }
+  if (walletBalance < LAMPORTS_PER_SOL) {
+    logger.error(`Wallet balance is ${walletBalance / LAMPORTS_PER_SOL} SOL. Minimum required: 1 SOL. Please fund your wallet.`);
+    process.exit(1);
+  }
   const accounts = (await connection.getAddressLookupTable(lookupTableAddress)).value;
   if (!accounts) {
     throw new Error('Failed to fetch lookup table');

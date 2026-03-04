@@ -1,9 +1,5 @@
 import TelegramBot from 'node-telegram-bot-api';
 import { TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID } from '../constants';
-import { logger } from './logger';
-
-
-
 
 
 export async function sendTelegramAlert(message: string) {

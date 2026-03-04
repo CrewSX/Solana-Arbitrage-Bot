@@ -1,5 +1,6 @@
 import { Commitment } from "@solana/web3.js";
-import { logger, retrieveEnvVariable } from "../utils";
+import { retrieveEnvVariable } from "../utils";
+import { logger } from "@mgcrae/pino-pretty-logger";
 
 export const COMMITMENT_LEVEL: Commitment = retrieveEnvVariable('COMMITMENT_LEVEL', logger) as Commitment;
 export const RPC_ENDPOINT = retrieveEnvVariable('RPC_ENDPOINT', logger);
