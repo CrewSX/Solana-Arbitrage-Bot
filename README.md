@@ -1,97 +1,153 @@
-🧭 Solana arbitrage bot
-- Solana arbitrage bot detect price differences between several dexes such as pumpswap, raydium, meteora, orca and make profit.
-The purpose of this bot is to build token selection module, price calculation module, arbitrage opportunity detection module and swap module.
----
-🧩 About
-- This project provide several arbitrage modules and core smart contract for trying 2-hop, 3-hop, 4-hop swaps.
----
-✨ Features
-- Dynamic token selection module
- Bot update token list for arbitrage in real time for trending tokens.
-- Multi hop smart contract.
- Smart contract has been optimzized for multi hop swaps by reducing transaction size using address lookup table.
-- Several dexes support
- Bot currently work with 7 dexes, pumpswap, raydium amm v4, raydium clmm, raydium cpmm, orca whirlpool, meteora damm v2, meteora dlmm.
-- Fast transaction building and sending method.
- For sending transaction asap, bot cache all available data and directly stream acount from geyser grpc.
-- Address lookup tables
- I already configured address lookup table with the addresses in alts.txt of root directory
- If you want your own ALT, replace addresses in alts.txt and use createALT function of utils.ts
----
-🧠 Tech Stack
-- Languages:  JavaScript, TypeScript
-- Frameworks: Node.js
-- ools:   VS code, github
----
-⚙️ Installation
-#### Clone the repository
-- git clone 
+# Solana Arbitrage Bot
 
-#### Navigate to the project directory
-- cd solana_arbitrage_bot
+**Automated cross-DEX arbitrage bot for Solana.** Detects price discrepancies across 7 DEXes and executes multi-hop swaps in real time. Built for speed with Yellowstone gRPC streaming, Jito integration, and optimized on-chain programs.
 
-#### Install dependencies
-- npm install  
----
-🚀 Usage
-#### Start the development server
-- npm start  
----
-🧾 Configuration
-### Replace .env.example file with a .env file and set following environment variables
-- PRIVATE_KEY=
-- COMMITMENT_LEVEL=
-- RPC_ENDPOINT=   //For rpc calls
-- SWQOS_ENDPOINT=   //For sending transactions
-- GRPC_ENDPOINT=
-- API_KEY=
-- QUOTE_AMOUNT=
-- SLIPPAGE=
-- BLOCK_ENGINE_URL=
-- ISJITO=   //If true, send tx via jito, if not , send tx via swqos
-
-After setting environment variables, create a tokens.txt file of root directory of project and list initial tokens for arbitrage.
----
-🖼 Screenshots
-![Arbitrage testing results](https://azure-legal-macaw-413.mypinata.cloud/ipfs/bafkreihpxbndcnkkpy7k7r4k34pah4lzmpot5bkssuvckki7dn67wc3cti)
-![Arbitrage testing rssults](https://azure-legal-macaw-413.mypinata.cloud/ipfs/bafkreidafhcqurlfqpot5vwx7k6skzoae43sd5ftssaszyoz7ybiuapk7i)
-
-Arbitrage program
-- https://solscan.io/account/6UZznePGgoykwAutgJFmQce2QQzfYjVcsQesZbRq9Y3b
----
-☎️ Contact
-- [Telegram](https://t.me/crewsxdev)
----
-🌟 Acknowledgements
-### Used libraries
-- "@meteora-ag/cp-amm-sdk": "^1.3.2",
-- "@meteora-ag/dlmm": "^1.9.3",
-- "@meteora-sdk/core": "^1.4.6",
-- "@orca-so/whirlpools-sdk": "^0.17.4",
-- "@pump-fun/pump-sdk": "^1.3.4",
-- "@pump-fun/pump-swap-sdk": "^0.0.1-beta.52",
-- "@raydium-io/raydium-sdk": "^1.3.1-beta.47",
-- "@raydium-io/raydium-sdk-v2": "^0.2.2-alpha",
-- "@shyft-to/solana-transaction-parser": "^2.0.1",
-- "@solana/signers": "^2.3.0",
-- "@solana/spl-token": "^0.4.0",
-- "@solana/spl-token-metadata": "^0.1.6",
-- "@solana/web3.js": "^1.89.1",
-- "@supercharge/queue-datastructure": "^2.1.0",
-- "@triton-one/yellowstone-grpc": "^4.0.0",
----
-🔎 Furture development
-- Flashloan integration
- Currently the maximum trade amount is about 5k for big pools.
- If you have enough funds, you can use this bot without any problem.
- For customers who don't have enough funds, will try flashloan.
-- Tip optimization
- Currently tip is static. For the best performance, I am going to optimize fee and tip setting.
-
-This bot is beta version , so can make small profit, but can't expect big profit.
-If you want more profit, please feel free to reach out me.
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
+[![Solana](https://img.shields.io/badge/Solana-Mainnet-purple.svg)](https://solana.com/)
+[![Node.js](https://img.shields.io/badge/Node.js-22+-green.svg)](https://nodejs.org/)
 
 ---
-📖 How to use.
-- Setup environments variable such as private key, rpc, grpc urls
-- Add token mints addresses you want in tokens.txt of project root directory.
+
+## Overview
+
+A high-performance **Solana arbitrage bot** that monitors price differences between decentralized exchanges (DEXes) and executes profitable swaps. The bot supports 2-hop, 3-hop, and 4-hop arbitrage routes using a custom on-chain program with address lookup tables for minimal transaction size.
+
+### Supported DEXes
+
+| DEX | Program Type |
+|-----|--------------|
+| PumpSwap | Pump.fun bonding curve |
+| Raydium AMM v4 | Constant product |
+| Raydium CLMM | Concentrated liquidity |
+| Raydium CPMM | Centralized liquidity |
+| Orca Whirlpool | Concentrated liquidity |
+| Meteora DLMM | Dynamic liquidity market maker |
+| Meteora DAMM v2 | Dynamic AMM |
+
+---
+
+## Features
+
+- **Real-time token discovery** — Subscribes to token migrations and trending tokens for automatic opportunity detection
+- **Multi-hop arbitrage** — 2, 3, and 4-hop swap routes via optimized on-chain program
+- **7 DEX integration** — PumpSwap, Raydium (AMM/CLMM/CPMM), Orca, Meteora (DLMM/DAMM)
+- **Low-latency execution** — Yellowstone gRPC streaming, cached pool data, Jito block engine support
+- **Address lookup tables** — Reduced transaction size for faster inclusion
+- **Configurable thresholds** — Minimum profit, slippage, and price difference filters
+- **Telegram alerts** — Optional notifications for executed trades
+
+---
+
+## Tech Stack
+
+- **Runtime:** Node.js 22+
+- **Language:** TypeScript
+- **Blockchain:** Solana (mainnet-beta)
+- **APIs:** Yellowstone gRPC, Jito Block Engine
+- **Key SDKs:** `@solana/web3.js`, Raydium, Orca, Meteora, Pump.fun
+
+---
+
+## Prerequisites
+
+- Node.js 22 or higher
+- Solana RPC endpoint (Helius, QuickNode, or similar)
+- Geyser gRPC endpoint (for account streaming)
+- Minimum 1 SOL in wallet for transaction fees and arbitrage capital
+
+---
+
+## Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/your-username/solana-arbitrage-bot.git
+cd solana-arbitrage-bot
+
+# Install dependencies
+npm install
+```
+
+---
+
+## Configuration
+
+1. Copy the example environment file:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Edit `.env` with your credentials:
+
+   | Variable | Description |
+   |----------|-------------|
+   | `PRIVATE_KEY` | Base58-encoded wallet secret key |
+   | `RPC_ENDPOINT` | Solana RPC URL for reads |
+   | `SWQOS_ENDPOINT` | RPC for sending transactions |
+   | `GRPC_ENDPOINT` | Yellowstone/Geyser gRPC URL |
+   | `API_KEY` | Geyser API key |
+   | `QUOTE_AMOUNT` | Trade size in SOL |
+   | `SLIPPAGE` | Max slippage tolerance (%) |
+   | `MINIMUM_PROFIT` | Minimum profit threshold (SOL) |
+   | `BLOCK_ENGINE_URL` | Jito Block Engine URL |
+   | `ISJITO` | `true` to use Jito, `false` for standard RPC |
+
+3. Create `tokens.txt` in the project root with initial token mint addresses (one per line).
+
+---
+
+## Usage
+
+```bash
+# Start the arbitrage bot
+npm start
+
+# Run swap calculation tests
+npm run test
+
+# Generate address lookup table from alts.txt
+npm run createAlt
+```
+
+---
+
+## Arbitrage Program
+
+The on-chain arbitrage program is deployed at:
+
+[**6UZznePGgoykwAutgJFmQce2QQzfYjVcsQesZbRq9Y3b**](https://solscan.io/account/6UZznePGgoykwAutgJFmQce2QQzfYjVcsQesZbRq9Y3b)
+
+---
+
+## Screenshots
+
+| Arbitrage Testing | Results |
+|-------------------|---------|
+| ![Arbitrage testing](https://azure-legal-macaw-413.mypinata.cloud/ipfs/bafkreihpxbndcnkkpy7k7r4k34pah4lzmpot5bkssuvckki7dn67wc3cti) | ![Results](https://azure-legal-macaw-413.mypinata.cloud/ipfs/bafkreidafhcqurlfqpot5vwx7k6skzoae43sd5ftssaszyoz7ybiuapk7i) |
+
+---
+
+## Roadmap
+
+- **Flash loan integration** — Enable larger trades without upfront capital
+- **Dynamic tip optimization** — Adaptive Jito tip for improved inclusion rate
+- **Additional DEX support** — Expand to more Solana liquidity venues
+
+---
+
+## Disclaimer
+
+This software is provided as-is for educational and research purposes. Arbitrage trading involves risk. Use at your own discretion. Always verify transactions and amounts before execution.
+
+---
+
+## Contact
+
+- **Telegram:** [@crewsxdev](https://t.me/crewsxdev)
+
+---
+
+## Acknowledgments
+
+Built with [Raydium](https://raydium.io/), [Orca](https://orca.so/), [Meteora](https://meteora.ag/), [Pump.fun](https://pump.fun/), [Yellowstone gRPC](https://github.com/rpcpool/yellowstone-grpc), and the [Solana](https://solana.com/) ecosystem.
